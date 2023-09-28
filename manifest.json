@@ -22,9 +22,9 @@
   "action": {
     "default_popup": "",
     "default_icon": {
-      "16": "icon_16.png",
-      "64": "icon_64.png",
-      "128": "icon_128.png"
+      "16": "icon.png",
+      "64": "icon.png",
+      "128": "icon.png"
     }
   }
 }
