@@ -18,6 +18,7 @@
       "js": ["content.js"]
     }
   ],
+  "description": "Blocks youtube mixes from \"youtube.com/results\" page.",
   "action": {
     "default_popup": "",
     "default_icon": {
