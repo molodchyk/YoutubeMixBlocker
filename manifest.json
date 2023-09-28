@@ -2,9 +2,11 @@
   "manifest_version": 3,
   "name": "YouTube Mix Blocker",
   "version": "1.0",
-  "permissions": [
+    "permissions": [
     "activeTab",
-    "declarativeContent",
+    "declarativeContent"
+  ],
+  "host_permissions": [
     "https://www.youtube.com/*"
   ],
   "background": {
