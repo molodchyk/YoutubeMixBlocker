@@ -26,5 +26,10 @@
       "64": "icon-64.jpg",
       "128": "icon-128.jpg"
     }
+  },
+  "icons": {
+    "16": "icon-16.jpg",
+    "48": "icon-64.jpg",
+    "128": "icon-128.jpg"
   }
 }
