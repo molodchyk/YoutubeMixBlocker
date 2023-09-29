@@ -22,14 +22,14 @@
   "action": {
     "default_popup": "",
     "default_icon": {
-      "16": "icon-16.jpg",
-      "64": "icon-64.jpg",
-      "128": "icon-128.jpg"
+      "16": "icon-16.png",
+      "64": "icon-64.png",
+      "128": "icon-128.png"
     }
   },
   "icons": {
-    "16": "icon-16.jpg",
-    "48": "icon-64.jpg",
-    "128": "icon-128.jpg"
+    "16": "icon-16.png",
+    "48": "icon-64.png",
+    "128": "icon-128.png"
   }
 }
