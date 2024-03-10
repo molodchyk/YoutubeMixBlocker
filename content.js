@@ -5,7 +5,7 @@
  * 
  * This file is part of the YouTube Mix Blocker Extension.
  *
- * Defense YouTube Mix Blocker Extension is free software: you can redistribute it and/or modify
+ * YouTube Mix Blocker Extension is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Defense Against Distractions Extension. If not, see <http://www.gnu.org/licenses/>.
+ * along with YouTube Mix Blocker Extension. If not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Oleksandr Molodchyk
  * Copyright (C) 2023-2024 Oleksandr Molodchyk
@@ -29,11 +29,23 @@ function hideElement(element) {
 
 // Function to block YouTube mixes
 function blockYouTubeMixes() {
-  // Locate and block YouTube radio renderer elements on the search page
   const radioElements = document.querySelectorAll("ytd-radio-renderer.ytd-item-section-renderer.style-scope");
-  radioElements.forEach((radioElement) => {
-    hideElement(radioElement); // Hide the radio renderer element
+  let mixesBlockedThisRound = 0; // Initialize a counter for mixes blocked in this function call
+
+  radioElements.forEach((radioElement, index) => {
+    if (!radioElement.hasAttribute('data-mix-blocked')) {
+      hideElement(radioElement); // Hide the radio renderer element
+      
+      // Mark the element as blocked to prevent future logs for the same element
+      radioElement.setAttribute('data-mix-blocked', 'true');
+      mixesBlockedThisRound++; // Increment counter since a mix was blocked
+    }
   });
+
+  // Log only if at least one mix was blocked in this round of mutation observation
+  if (mixesBlockedThisRound > 0) {
+    console.log(`${mixesBlockedThisRound} YouTube Mix(es) blocked.`);
+  }
 }
 
 // Check if the current page is a YouTube search results page
