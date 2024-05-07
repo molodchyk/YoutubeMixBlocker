@@ -27,41 +27,67 @@ function hideElement(element) {
   element.style.display = "none";
 }
 
-// Function to block YouTube mixes
+// Function to log the blocking of mixes
+function logBlockedMixes(count, type) {
+  if (count > 0) {
+    console.log(`${count} YouTube Mix(es) blocked on ${type}.`);
+  }
+}
+
+// Function to block YouTube mixes on search results page
 function blockYouTubeMixes() {
   const radioElements = document.querySelectorAll("ytd-radio-renderer.ytd-item-section-renderer.style-scope");
-  let mixesBlockedThisRound = 0; // Initialize a counter for mixes blocked in this function call
+  let mixesBlockedThisRound = 0;
 
-  radioElements.forEach((radioElement, index) => {
-    if (!radioElement.hasAttribute('data-mix-blocked')) {
-      hideElement(radioElement); // Hide the radio renderer element
-      
-      // Mark the element as blocked to prevent future logs for the same element
-      radioElement.setAttribute('data-mix-blocked', 'true');
-      mixesBlockedThisRound++; // Increment counter since a mix was blocked
+  radioElements.forEach(element => {
+    if (!element.hasAttribute('data-mix-blocked')) {
+      hideElement(element);
+      element.setAttribute('data-mix-blocked', 'true');
+      mixesBlockedThisRound++;
     }
   });
 
-  // Log only if at least one mix was blocked in this round of mutation observation
-  if (mixesBlockedThisRound > 0) {
-    console.log(`${mixesBlockedThisRound} YouTube Mix(es) blocked.`);
-  }
+  logBlockedMixes(mixesBlockedThisRound, "search results");
 }
 
-// Check if the current page is a YouTube search results page
-if (window.location.href.includes("youtube.com") && window.location.href.includes("/results")) {
-  // Initial call to block radio renderer elements
-  blockYouTubeMixes();
-}
+// Function to block YouTube recommended mixes on the homepage
+function blockYouTubeRecommendedMixes() {
+  const mixElements = document.querySelectorAll("ytd-thumbnail-overlay-bottom-panel-renderer, ytd-rich-grid-media");
+  let mixesBlockedThisRound = 0;
 
-const observer = new MutationObserver((mutationsList, observer) => {
-  for (const mutation of mutationsList) {
-    if (mutation.type === 'childList') {
-      // Call the function to check and block mixes whenever DOM changes occur
-      blockYouTubeMixes();
+  mixElements.forEach(element => {
+    if (element.innerText.includes("Mix")) {
+      if (!element.hasAttribute('data-mix-blocked')) {
+        hideElement(element.parentNode);
+        element.setAttribute('data-mix-blocked', 'true');
+        mixesBlockedThisRound++;
+      }
     }
-  }
+  });
+
+  logBlockedMixes(mixesBlockedThisRound, "homepage");
+}
+
+// Initial call and setup observer based on the current page
+const observer = new MutationObserver(mutations => {
+  mutations.forEach(mutation => {
+    if (mutation.type === 'childList') {
+      if (window.location.href.includes("/results")) {
+        blockYouTubeMixes();
+      } else {
+        blockYouTubeRecommendedMixes();
+      }
+    }
+  });
 });
 
 // Start observing changes in the document body
 observer.observe(document.body, { childList: true, subtree: true });
+
+if (window.location.href.includes("youtube.com/results")) {
+  blockYouTubeMixes();
+} else {
+  blockYouTubeRecommendedMixes();
+}
+
+

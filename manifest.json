@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Mix Blocker",
-  "version": "1.3",
+  "version": "1.4",
     "permissions": [
     "declarativeContent"
   ],
@@ -17,10 +17,12 @@
       "js": ["content.js"]
     }
   ],
-  "description": "Blocks youtube mixes from \"youtube.com/results\" page.",
+  "description": "Blocks youtube mixes from from recommendations and from \"youtube.com/results\" page.",
   "icons": {
     "16": "icon-16.png",
     "48": "icon-64.png",
     "128": "icon-128.png"
   }
 }
+
+
