@@ -29,77 +29,82 @@ function isMixURL(url) {
   return /[?&]list=RD/.test(url);
 }
 
-/* Extract playlist ID (RDxxxx) */
-function extractMixId(url) {
-  const match = url.match(/[?&]list=(RD[^&]+)/);
-  return match ? match[1] : null;
+/* Renderer container = layout authority (prevents gaps) */
+function findRendererContainer(element) {
+  return element.closest(
+    "ytd-rich-item-renderer, " +
+    "ytd-video-renderer, " +
+    "ytd-compact-video-renderer, " +
+    "ytd-grid-video-renderer"
+  );
 }
 
-/* Strongest container resolution (data-bound identity) */
-function findContainerById(mixId) {
-  if (!mixId) return null;
-  return document.querySelector(`.content-id-${mixId}`);
-}
-
-/* Structural fallback — avoid hardcoding component names */
-function findCardContainer(link) {
-  let el = link;
-
-  while (el && el !== document.body) {
-    const hasImage = el.querySelector && el.querySelector("img");
-    const linkCount = el.querySelectorAll ? el.querySelectorAll("a[href]").length : 0;
-
-    if (hasImage && linkCount > 1) {
-      return el;
-    }
-
-    el = el.parentElement;
-  }
-
-  return null;
-}
-
-function hideElement(el, debugURL) {
+/* Safe removal */
+function removeElement(el, debugURL) {
   if (!el || el.hasAttribute("data-mix-blocked")) return;
 
-  el.style.display = "none";
   el.setAttribute("data-mix-blocked", "true");
+  el.remove();
 
-  console.log("Mix blocked:", debugURL);
+  console.log("Mix removed:", debugURL);
 }
 
-function hideContainerFromLink(link) {
-  const mixId = extractMixId(link.href);
-
-  /* Prefer stable ID-based resolution */
-  const idContainer = findContainerById(mixId);
-  if (idContainer) {
-    hideElement(idContainer, link.href);
-    return;
-  }
-
-  /* Fallback to structural detection */
-  const heuristicContainer = findCardContainer(link);
-  hideElement(heuristicContainer, link.href);
-}
-
-/* Scan any subtree */
-function scanForMixes(root = document) {
-  const links = root.querySelectorAll("a[href]");
+/* SEARCH RESULTS LOGIC (kept conceptually) */
+function blockYouTubeMixes() {
+  const links = document.querySelectorAll("a[href]");
+  let removed = 0;
 
   links.forEach(link => {
     if (isMixURL(link.href)) {
-      hideContainerFromLink(link);
+      const container = findRendererContainer(link);
+      if (container) {
+        removeElement(container, link.href);
+        removed++;
+      }
     }
   });
+
+  if (removed) {
+    console.log(`Blocked ${removed} mixes on search page`);
+  }
 }
 
-/* SPA-safe observer */
+/* RECOMMENDATIONS / HOME LOGIC (kept conceptually) */
+function blockYouTubeRecommendedMixes() {
+  const links = document.querySelectorAll("a[href]");
+  let removed = 0;
+
+  links.forEach(link => {
+    if (isMixURL(link.href)) {
+      const container = findRendererContainer(link);
+      if (container) {
+        removeElement(container, link.href);
+        removed++;
+      }
+    }
+  });
+
+  if (removed) {
+    console.log(`Blocked ${removed} mixes on recommendations`);
+  }
+}
+
+/* Routing logic preserved */
+function runBlockingLogic() {
+  if (window.location.href.includes("/results")) {
+    blockYouTubeMixes();
+  } else {
+    blockYouTubeRecommendedMixes();
+  }
+}
+
+/* SPA-safe observer (critical for YouTube) */
 const observer = new MutationObserver(mutations => {
   for (const mutation of mutations) {
     for (const node of mutation.addedNodes) {
       if (node.nodeType === Node.ELEMENT_NODE) {
-        scanForMixes(node);
+        runBlockingLogic();
+        return;
       }
     }
   }
@@ -111,4 +116,4 @@ observer.observe(document.documentElement, {
 });
 
 /* Initial execution */
-scanForMixes();
+runBlockingLogic();
