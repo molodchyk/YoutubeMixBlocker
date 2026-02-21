@@ -118,10 +118,43 @@ const observer = new MutationObserver(mutations => {
   }
 });
 
+/* ---------- URL NORMALISATION (watch page mixes) ---------- */
+
+function cleanMixURL() {
+  const url = new URL(window.location.href);
+  const list = url.searchParams.get("list");
+
+  if (list && list.startsWith("RD")) {
+    url.searchParams.delete("list");
+    url.searchParams.delete("start_radio");
+
+    history.replaceState(null, "", url.toString());
+
+    console.log("Mix URL cleaned:", url.toString());
+  }
+}
+
+/* ---------- SPA NAVIGATION DETECTION ---------- */
+
+function onNavigation() {
+  cleanMixURL();
+  scanForMixes();
+}
+
+/* Patch pushState (YouTube uses it internally) */
+const originalPushState = history.pushState;
+history.pushState = function () {
+  originalPushState.apply(history, arguments);
+  onNavigation();
+};
+
+/* Back/forward navigation */
+window.addEventListener("popstate", onNavigation);
+
 observer.observe(document.documentElement, {
   childList: true,
   subtree: true
 });
 
 /* Initial execution */
-scanForMixes();
+onNavigation();
