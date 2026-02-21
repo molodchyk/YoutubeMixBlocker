@@ -24,12 +24,32 @@
 
 console.log("MixBlocker active", window.location.href);
 
-/* Stable semantic rule */
+/* ---------- MIX DETECTION (from old stable logic) ---------- */
+
 function isMixURL(url) {
   return /[?&]list=RD/.test(url);
 }
 
-/* Renderer container = layout authority (prevents gaps) */
+/* Structural heuristic fallback (old behaviour retained) */
+function findCardContainer(link) {
+  let el = link;
+
+  while (el && el !== document.body) {
+    const hasImage = el.querySelector && el.querySelector("img");
+    const linkCount = el.querySelectorAll ? el.querySelectorAll("a[href]").length : 0;
+
+    if (hasImage && linkCount > 1) {
+      return el;
+    }
+
+    el = el.parentElement;
+  }
+
+  return null;
+}
+
+/* ---------- RENDERER-LEVEL RESOLUTION (gap-safe) ---------- */
+
 function findRendererContainer(element) {
   return element.closest(
     "ytd-rich-item-renderer, " +
@@ -39,8 +59,7 @@ function findRendererContainer(element) {
   );
 }
 
-/* Safe removal */
-function removeElement(el, debugURL) {
+function markAndRemove(el, debugURL) {
   if (!el || el.hasAttribute("data-mix-blocked")) return;
 
   el.setAttribute("data-mix-blocked", "true");
@@ -49,62 +68,51 @@ function removeElement(el, debugURL) {
   console.log("Mix removed:", debugURL);
 }
 
-/* SEARCH RESULTS LOGIC (kept conceptually) */
-function blockYouTubeMixes() {
-  const links = document.querySelectorAll("a[href]");
+/* ---------- CORE BLOCKING LOGIC ---------- */
+
+function handleMixLink(link) {
+  if (!isMixURL(link.href)) return false;
+
+  /* Prefer renderer removal (prevents gaps) */
+  const renderer = findRendererContainer(link);
+  if (renderer) {
+    markAndRemove(renderer, link.href);
+    return true;
+  }
+
+  /* Fallback to heuristic container (old resilience) */
+  const heuristic = findCardContainer(link);
+  if (heuristic) {
+    markAndRemove(heuristic, link.href);
+    return true;
+  }
+
+  return false;
+}
+
+/* Scan any subtree (old SPA-safe behaviour retained) */
+function scanForMixes(root = document) {
+  const links = root.querySelectorAll("a[href]");
   let removed = 0;
 
   links.forEach(link => {
-    if (isMixURL(link.href)) {
-      const container = findRendererContainer(link);
-      if (container) {
-        removeElement(container, link.href);
-        removed++;
-      }
+    if (handleMixLink(link)) {
+      removed++;
     }
   });
 
   if (removed) {
-    console.log(`Blocked ${removed} mixes on search page`);
+    console.log("Mixes removed in pass:", removed);
   }
 }
 
-/* RECOMMENDATIONS / HOME LOGIC (kept conceptually) */
-function blockYouTubeRecommendedMixes() {
-  const links = document.querySelectorAll("a[href]");
-  let removed = 0;
+/* ---------- SPA OBSERVER (critical on YouTube) ---------- */
 
-  links.forEach(link => {
-    if (isMixURL(link.href)) {
-      const container = findRendererContainer(link);
-      if (container) {
-        removeElement(container, link.href);
-        removed++;
-      }
-    }
-  });
-
-  if (removed) {
-    console.log(`Blocked ${removed} mixes on recommendations`);
-  }
-}
-
-/* Routing logic preserved */
-function runBlockingLogic() {
-  if (window.location.href.includes("/results")) {
-    blockYouTubeMixes();
-  } else {
-    blockYouTubeRecommendedMixes();
-  }
-}
-
-/* SPA-safe observer (critical for YouTube) */
 const observer = new MutationObserver(mutations => {
   for (const mutation of mutations) {
     for (const node of mutation.addedNodes) {
       if (node.nodeType === Node.ELEMENT_NODE) {
-        runBlockingLogic();
-        return;
+        scanForMixes(node);
       }
     }
   }
@@ -116,4 +124,4 @@ observer.observe(document.documentElement, {
 });
 
 /* Initial execution */
-runBlockingLogic();
+scanForMixes();
