@@ -19,7 +19,7 @@
  * along with YouTube Mix Blocker Extension. If not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Oleksandr Molodchyk
- * Copyright (C) 2023-2024 Oleksandr Molodchyk
+ * Copyright (C) 2023-2026 Oleksandr Molodchyk
  */
 
 chrome.runtime.onInstalled.addListener(() => {

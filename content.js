@@ -19,75 +19,96 @@
  * along with YouTube Mix Blocker Extension. If not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Oleksandr Molodchyk
- * Copyright (C) 2023-2024 Oleksandr Molodchyk
+ * Copyright (C) 2023-2026 Oleksandr Molodchyk
  */
 
-// Function to hide the specified element
-function hideElement(element) {
-  element.style.display = "none";
+console.log("MixBlocker active", window.location.href);
+
+/* Stable semantic rule */
+function isMixURL(url) {
+  return /[?&]list=RD/.test(url);
 }
 
-// Function to log the blocking of mixes
-function logBlockedMixes(count, type) {
-  if (count > 0) {
-    console.log(`${count} YouTube Mix(es) blocked on ${type}.`);
+/* Extract playlist ID (RDxxxx) */
+function extractMixId(url) {
+  const match = url.match(/[?&]list=(RD[^&]+)/);
+  return match ? match[1] : null;
+}
+
+/* Strongest container resolution (data-bound identity) */
+function findContainerById(mixId) {
+  if (!mixId) return null;
+  return document.querySelector(`.content-id-${mixId}`);
+}
+
+/* Structural fallback — avoid hardcoding component names */
+function findCardContainer(link) {
+  let el = link;
+
+  while (el && el !== document.body) {
+    const hasImage = el.querySelector && el.querySelector("img");
+    const linkCount = el.querySelectorAll ? el.querySelectorAll("a[href]").length : 0;
+
+    if (hasImage && linkCount > 1) {
+      return el;
+    }
+
+    el = el.parentElement;
   }
+
+  return null;
 }
 
-// Function to block YouTube mixes on search results page
-function blockYouTubeMixes() {
-  const radioElements = document.querySelectorAll("ytd-radio-renderer.ytd-item-section-renderer.style-scope");
-  let mixesBlockedThisRound = 0;
+function hideElement(el, debugURL) {
+  if (!el || el.hasAttribute("data-mix-blocked")) return;
 
-  radioElements.forEach(element => {
-    if (!element.hasAttribute('data-mix-blocked')) {
-      hideElement(element);
-      element.setAttribute('data-mix-blocked', 'true');
-      mixesBlockedThisRound++;
+  el.style.display = "none";
+  el.setAttribute("data-mix-blocked", "true");
+
+  console.log("Mix blocked:", debugURL);
+}
+
+function hideContainerFromLink(link) {
+  const mixId = extractMixId(link.href);
+
+  /* Prefer stable ID-based resolution */
+  const idContainer = findContainerById(mixId);
+  if (idContainer) {
+    hideElement(idContainer, link.href);
+    return;
+  }
+
+  /* Fallback to structural detection */
+  const heuristicContainer = findCardContainer(link);
+  hideElement(heuristicContainer, link.href);
+}
+
+/* Scan any subtree */
+function scanForMixes(root = document) {
+  const links = root.querySelectorAll("a[href]");
+
+  links.forEach(link => {
+    if (isMixURL(link.href)) {
+      hideContainerFromLink(link);
     }
   });
-
-  logBlockedMixes(mixesBlockedThisRound, "search results");
 }
 
-// Function to block YouTube recommended mixes on the homepage
-function blockYouTubeRecommendedMixes() {
-  const mixElements = document.querySelectorAll("ytd-thumbnail-overlay-bottom-panel-renderer, ytd-rich-grid-media");
-  let mixesBlockedThisRound = 0;
-
-  mixElements.forEach(element => {
-    if (element.innerText.includes("Mix")) {
-      if (!element.hasAttribute('data-mix-blocked')) {
-        hideElement(element.parentNode);
-        element.setAttribute('data-mix-blocked', 'true');
-        mixesBlockedThisRound++;
-      }
-    }
-  });
-
-  logBlockedMixes(mixesBlockedThisRound, "homepage");
-}
-
-// Initial call and setup observer based on the current page
+/* SPA-safe observer */
 const observer = new MutationObserver(mutations => {
-  mutations.forEach(mutation => {
-    if (mutation.type === 'childList') {
-      if (window.location.href.includes("/results")) {
-        blockYouTubeMixes();
-      } else {
-        blockYouTubeRecommendedMixes();
+  for (const mutation of mutations) {
+    for (const node of mutation.addedNodes) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        scanForMixes(node);
       }
     }
-  });
+  }
 });
 
-// Start observing changes in the document body
-observer.observe(document.body, { childList: true, subtree: true });
+observer.observe(document.documentElement, {
+  childList: true,
+  subtree: true
+});
 
-if (window.location.href.includes("youtube.com/results")) {
-  blockYouTubeMixes();
-} else {
-  blockYouTubeRecommendedMixes();
-}
-
-
+/* Initial execution */
+scanForMixes();
